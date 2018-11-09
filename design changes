@@ -1,0 +1,7 @@
+-Timer_Sleep modified to get current thread and set number of ticks for thread to sleep. Then adds sleeping thread to list of sleeping threads
+
+-Timer_interrupt modified to update thread priorities, check and wakeup sleeping threads, and preempt threads if necessary
+
+-Added fixed-point.h to handle fixed point value arithmetic operations. (handles conversion, addition, subtraction, multiplication, division, and variations of fixed point/integer combinations)
+
+-
