@@ -377,84 +377,7 @@ thread_get_priority (void)
   return thread_current ()->priority;
 }
 
-/* Add a held lock to current thread. */
-void
-thread_add_lock (struct lock *lock)
-{
-  enum intr_level old_level = intr_disable ();
-  list_insert_ordered (&thread_current ()->locks, &lock->elem,
-                       lock_priority_large, NULL);
 
-  /* Update priority and test preemption if lock's priority
-     is larger than current priority. */
-  if (lock->max_priority > thread_current ()->priority)
-    {
-      thread_current ()->priority = lock->max_priority;
-      thread_test_preemption ();
-    }
-  intr_set_level (old_level);
-}
-
-/* Remove a held lock from current thread. */
-void
-thread_remove_lock (struct lock *lock)
-{
-  enum intr_level old_level = intr_disable ();
-  /* Remove lock from list and update priority. */
-  list_remove (&lock->elem);
-  thread_update_priority (thread_current ());
-  intr_set_level (old_level);
-}
-
-/* Donate current thread's priority to another thread. */
-void
-thread_donate_priority (struct thread *t)
-{
-  enum intr_level old_level = intr_disable ();
-  thread_update_priority (t);
-  /* If thread is in ready list, reorder it. */
-  if (t->status == THREAD_READY)
-    {
-      list_remove (&t->elem);
-      list_insert_ordered (&ready_list, &t->elem,
-                           thread_priority_large, NULL);
-    }
-  intr_set_level (old_level);
-}
-
-/* Update thread's priority. This function only update
-   priority and do not preempt. */
-void
-thread_update_priority (struct thread *t)
-{
-  enum intr_level old_level = intr_disable ();
-  int max_priority = t->base_priority;
-  int lock_priority;
-
-  /* Get locks' max priority. */
-  if (!list_empty (&t->locks))
-    {
-      list_sort (&t->locks, lock_priority_large, NULL);
-      lock_priority = list_entry (list_front (&t->locks),
-                                  struct lock, elem)->max_priority;
-      if (lock_priority > max_priority)
-        max_priority = lock_priority;
-    }
-
-  t->priority = max_priority;
-  intr_set_level (old_level);
-}
-
-/* Test if current thread should be preempted. */
-void
-thread_test_preemption (void)
-{
-  enum intr_level old_level = intr_disable ();
-  if (!list_empty (&ready_list) && thread_current ()->priority <
-      list_entry (list_front (&ready_list), struct thread, elem)->priority)
-      thread_yield ();
-  intr_set_level (old_level);
-}
 
 /* Sets the current thread's nice value to NICE. */
 void
@@ -797,3 +720,82 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+/* Add a held lock to current thread. */
+void
+thread_add_lock (struct lock *lock)
+{
+  enum intr_level old_level = intr_disable ();
+  list_insert_ordered (&thread_current ()->locks, &lock->elem,
+                       lock_priority_large, NULL);
+
+  /* Update priority and test preemption if lock's priority
+     is larger than current priority. */
+  if (lock->max_priority > thread_current ()->priority)
+    {
+      thread_current ()->priority = lock->max_priority;
+      thread_test_preemption ();
+    }
+  intr_set_level (old_level);
+}
+
+/* Remove a held lock from current thread. */
+void
+thread_remove_lock (struct lock *lock)
+{
+  enum intr_level old_level = intr_disable ();
+  /* Remove lock from list and update priority. */
+  list_remove (&lock->elem);
+  thread_update_priority (thread_current ());
+  intr_set_level (old_level);
+}
+
+/* Donate current thread's priority to another thread. */
+void
+thread_donate_priority (struct thread *t)
+{
+  enum intr_level old_level = intr_disable ();
+  thread_update_priority (t);
+  /* If thread is in ready list, reorder it. */
+  if (t->status == THREAD_READY)
+    {
+      list_remove (&t->elem);
+      list_insert_ordered (&ready_list, &t->elem,
+                           thread_priority_large, NULL);
+    }
+  intr_set_level (old_level);
+}
+
+/* Update thread's priority. This function only update
+   priority and do not preempt. */
+void
+thread_update_priority (struct thread *t)
+{
+  enum intr_level old_level = intr_disable ();
+  int max_priority = t->base_priority;
+  int lock_priority;
+
+  /* Get locks' max priority. */
+  if (!list_empty (&t->locks))
+    {
+      list_sort (&t->locks, lock_priority_large, NULL);
+      lock_priority = list_entry (list_front (&t->locks),
+                                  struct lock, elem)->max_priority;
+      if (lock_priority > max_priority)
+        max_priority = lock_priority;
+    }
+
+  t->priority = max_priority;
+  intr_set_level (old_level);
+}
+
+/* Test if current thread should be preempted. */
+void
+thread_test_preemption (void)
+{
+  enum intr_level old_level = intr_disable ();
+  if (!list_empty (&ready_list) && thread_current ()->priority <
+      list_entry (list_front (&ready_list), struct thread, elem)->priority)
+      thread_yield ();
+  intr_set_level (old_level);
+}

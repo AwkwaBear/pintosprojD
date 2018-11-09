@@ -2,6 +2,26 @@
 
 -Timer_interrupt modified to update thread priorities, check and wakeup sleeping threads, and preempt threads if necessary
 
--Added fixed-point.h to handle fixed point value arithmetic operations. (handles conversion, addition, subtraction, multiplication, division, and variations of fixed point/integer combinations)
+-Added fixed-point.h to handle fixed point value arithmetic operations. (handles: conversion, addition, subtraction, multiplication, division, and variations of fixed point/integer combinations)
 
--
+-Thread.c:
+	-Thread start sets load_avg to a fixed point value
+	 -Thread create tests preemption when thread is initially created
+	-Functions where threads are added to a thread list were modified to do so based on priority
+	-set priority takes into account mflqs value and returns if true to use round robin scheduling, 	   		modified to prevent priority inversion through priority donation
+	-Added an add lock function to add lock held to a thread and test preemption
+	-added remove lock function to remove lock from thread when no longer held
+	-donate priority function added to donate running threads priority to another thread
+	-added update thread priority function to set back to base priority
+	-added test preemption function to test if threads should be preempted
+	-implemented setters and getters for threads NICE value
+	-implemented getters for thread load avg and recent cpu
+	-added function for calculation and increase of threads recent cpu
+	-added functions to update thread priority and refresh thread's load avg and recent cpu for mlfqs
+	-added functions for comparison of two threads wakeup ticks and priorities
+	-modifified init to initialize priority, locks, nice and recent cpu
+-Synch.c:
+	-Modified lock aquire to donate priorities to ensure threads do not invert pirority
+	-mofified lock release to account for mlfqs
+	-added lock priority function to determine whether thread has higher priority or not
+	-added function to determine if semaphore priority is greater
