@@ -4,6 +4,8 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include <kernel/list.h>
+#include <threads/synch.h>
 #include "synch.h"
 #include "fixed-point.h"
 
@@ -107,7 +109,22 @@ struct thread
     fixed_t recent_cpu;                 /* Recent CPU for 4.4BSD scheduler. */
 
     int64_t wakeup_ticks;               /* Wakeup ticks used by timer sleep */
+    int64_t waketick;
 
+    bool success;
+
+    int exit_error;
+
+    struct list child_proc;
+    struct thread* parent;
+
+    struct file *self;
+
+    struct list files;
+    int fd_count;
+
+    struct semaphore child_lock;
+    int waitingon;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -117,7 +134,12 @@ struct thread
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };
-
+  struct child {
+      int tid;
+      struct list_elem elem;
+      int exit_error;
+      bool used;
+    };
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
@@ -160,6 +182,7 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
+bool cmp_waketick(struct list_elem *first, struct list_elem *second, void *aux);
 
 void thread_mlfqs_incr_recent_cpu(void);
 void thread_mlfqs_calc_recent_cpu(struct thread *);
