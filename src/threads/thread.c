@@ -342,9 +342,7 @@ thread_foreach (thread_action_func *func, void *aux)
     }
 }
 
-/* Sets the current thread's priority to NEW_PRIORITY.
-   If the priority is donated by another thread, it may
-   not change immediately. */
+/* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority)
 {
@@ -486,7 +484,18 @@ thread_mlfqs_refresh(void)
     }
 }
 
-/* Compare wakeup ticks of two threads */
+//compare two threads priority
+bool
+thread_priority_large(const struct list_elem *a,
+                      const struct list_elem *b,
+                      void *aux UNUSED)
+{
+  struct thread *pta = list_entry (a, struct thread, elem);
+  struct thread *ptb = list_entry (b, struct thread, elem);
+  return pta->priority > ptb->priority;
+}
+
+//compare two threads wakeup ticks
 bool
 thread_wakeup_ticks_less(const struct list_elem *a,
                          const struct list_elem *b,
@@ -497,16 +506,7 @@ thread_wakeup_ticks_less(const struct list_elem *a,
   return pta->wakeup_ticks < ptb->wakeup_ticks;
 }
 
-/* Compare priority of two thread. */
-bool
-thread_priority_large(const struct list_elem *a,
-                      const struct list_elem *b,
-                      void *aux UNUSED)
-{
-  struct thread *pta = list_entry (a, struct thread, elem);
-  struct thread *ptb = list_entry (b, struct thread, elem);
-  return pta->priority > ptb->priority;
-}
+
 
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -721,7 +721,7 @@ allocate_tid (void)
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
-/* Add a held lock to current thread. */
+//function to give lock to current thread
 void
 thread_add_lock (struct lock *lock)
 {
@@ -729,8 +729,6 @@ thread_add_lock (struct lock *lock)
   list_insert_ordered (&thread_current ()->locks, &lock->elem,
                        lock_priority_large, NULL);
 
-  /* Update priority and test preemption if lock's priority
-     is larger than current priority. */
   if (lock->max_priority > thread_current ()->priority)
     {
       thread_current ()->priority = lock->max_priority;
@@ -739,18 +737,17 @@ thread_add_lock (struct lock *lock)
   intr_set_level (old_level);
 }
 
-/* Remove a held lock from current thread. */
+//lock removal function
 void
 thread_remove_lock (struct lock *lock)
 {
   enum intr_level old_level = intr_disable ();
-  /* Remove lock from list and update priority. */
   list_remove (&lock->elem);
   thread_update_priority (thread_current ());
   intr_set_level (old_level);
 }
 
-/* Donate current thread's priority to another thread. */
+//donate thread priority to another thread
 void
 thread_donate_priority (struct thread *t)
 {
@@ -766,8 +763,7 @@ thread_donate_priority (struct thread *t)
   intr_set_level (old_level);
 }
 
-/* Update thread's priority. This function only update
-   priority and do not preempt. */
+//update thread priority function
 void
 thread_update_priority (struct thread *t)
 {
@@ -775,7 +771,6 @@ thread_update_priority (struct thread *t)
   int max_priority = t->base_priority;
   int lock_priority;
 
-  /* Get locks' max priority. */
   if (!list_empty (&t->locks))
     {
       list_sort (&t->locks, lock_priority_large, NULL);
@@ -789,7 +784,7 @@ thread_update_priority (struct thread *t)
   intr_set_level (old_level);
 }
 
-/* Test if current thread should be preempted. */
+//function to test thread preemption
 void
 thread_test_preemption (void)
 {
